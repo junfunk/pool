@@ -68,7 +68,7 @@
             const canvasRef = useRef(null);
             const [spin, setSpin] = useState({ x: 0, y: 0 });
             const [gameState, setGameState] = useState('placing');
-            const [message, setMessage] = useState('請將上方子球拖入球桌布局，另外母球也可以任意改變位置。Please take the object balls above into the table layout, and the cue ball can also be repositioned freely.');
+            const [message, setMessage] = useState('準備佈球...');
             const [ballsInTableCount, setBallsInTableCount] = useState(0);
             const [visitorCount, setVisitorCount] = useState(0);
 
@@ -114,7 +114,7 @@
                 setGameState('placing');
                 setBallsInTableCount(0);
                 setSpin({x: 0, y: 0});
-                setMessage('請將上方子球拖入球桌布局，另外母球也可以任意改變位置。Please take the object balls above into the table layout, and the cue ball can also be repositioned freely.');
+                setMessage('準備佈球...');
             };
 
             useEffect(() => { spinRef.current = spin; }, [spin]);
@@ -428,13 +428,13 @@
 
             return (
                 <div className="flex flex-col items-center justify-center min-h-screen select-none bg-gradient-to-b from-[#111] to-[#050505]">
-                    {/* Header */}
-                    <div className="w-full max-w-[800px] flex justify-between items-end px-4 mb-4">
+                    {/* Header: Parallel Title and Visitor Count */}
+                    <div className="w-full max-w-[800px] flex justify-between items-center px-4 mb-4">
                         <h1 className="text-3xl font-black text-white tracking-tighter italic">
                             POOL<span className="text-yellow-500">PRO</span>
                         </h1>
-                        <div className="flex flex-col items-end">
-                            <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Visitors</div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Visitors</span>
                             <div className="text-xs font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded border border-white/10 shadow-inner">
                                 {visitorCount.toLocaleString()}
                             </div>
@@ -484,14 +484,10 @@
                                 </button>
                             </div>
 
-                            {/* 中間：狀態與提示 */}
-                            <div className="flex-1 flex flex-col items-center justify-center px-4 relative">
-                                <div className="absolute top-2 text-[9px] uppercase tracking-[0.3em] text-neutral-500 font-bold">Game Status</div>
-                                <div className="text-sm font-bold text-yellow-100 status-glow text-center leading-relaxed max-w-[280px]">
-                                    {message}
-                                </div>
-                                <div className="absolute bottom-3 text-[9px] text-neutral-600 italic">
-                                    Move cue ball to adjust initial position
+                            {/* 中間：提示訊息區 */}
+                            <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
+                                <div className="text-xs font-bold text-yellow-100 status-glow text-center leading-relaxed max-w-[450px]">
+                                    請將上方子球拖入球桌布局，另外母球也可以任意改變位置。Please take the object balls above into the table layout, and the cue ball can also be repositioned freely
                                 </div>
                             </div>
 
