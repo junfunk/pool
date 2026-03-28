@@ -299,19 +299,17 @@
 
                     if (col.type === 'ball') {
                         const hitBall = col.ball;
-                        // 碰撞向量（從碰撞點到球心）
                         const dx = hitBall.x - col.x, dy = hitBall.y - col.y;
                         const dist = Math.hypot(dx, dy);
                         
-                        // 1. 子球路徑 (撞擊瞬間的正向力方向)
+                        // 1. 子球去向
                         const objUx = dx / (dist || 1), objUy = dy / (dist || 1);
                         drawPathRecursive(hitBall.x, hitBall.y, objUx, objUy, [hitBall], hitBall.color, depth + 1, maxDepth);
 
-                        // 2. 母球折射路徑 (90度切線方向)
+                        // 2. 母球折射 (90度切線) 並繼續支援後續反彈
                         let tUx = -objUy, tUy = objUx;
                         const dot = tUx * ux + tUy * uy;
                         if (dot < 0) { tUx = -tUx; tUy = -tUy; }
-                        // 讓母球折射後也具備後續的反彈預測
                         drawPathRecursive(col.x, col.y, tUx, tUy, ignoreBalls, color, depth + 1, maxDepth, [4, 2]);
 
                     } else if (col.type === 'wall') {
@@ -417,9 +415,11 @@
             return (
                 <div className="flex flex-col items-center justify-center min-h-screen select-none bg-gradient-to-b from-[#111] to-[#050505] py-16">
                     <div className="content-container flex justify-between items-center px-4 mb-10">
-                        <h1 className="text-3xl font-black text-white tracking-tighter italic">POOL<span className="text-yellow-500">PRO</span></h1>
+                        <h1 className="text-3xl font-black text-white tracking-tighter italic">
+                            POOL <span className="text-yellow-500">BALL PATH</span>
+                        </h1>
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Visitors</span>
+                            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">CCL Visitors</span>
                             <div className="text-xs font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">{visitorCount.toLocaleString()}</div>
                         </div>
                     </div>
