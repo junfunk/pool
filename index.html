@@ -4,464 +4,531 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>美式 9 號球模擬器 - 自由佈局版</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #050505; color: white; margin: 0; font-family: sans-serif; }
-        canvas { touch-action: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: #050505; color: white; font-family: sans-serif; }
+        canvas { touch-action: none; cursor: crosshair; outline: none; display: block; }
         .glass-panel {
             background: rgba(20, 20, 20, 0.85);
             backdrop-filter: blur(12px);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .status-glow {
-            text-shadow: 0 0 10px rgba(254, 240, 138, 0.5);
+        .status-glow { text-shadow: 0 0 10px rgba(254, 240, 138, 0.5); }
+        .btn-shadow { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #111, #050505);
+            padding: 64px 0;
+            user-select: none;
         }
-        .btn-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        .content-container { width: 800px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 0 16px; margin-bottom: 40px; }
+        h1 { font-size: 1.875rem; font-weight: 900; color: white; letter-spacing: -0.05em; font-style: italic; }
+        h1 span { color: #EAB308; }
+        .visitor-box { display: flex; align-items: center; gap: 8px; }
+        .visitor-label { font-size: 10px; color: #737373; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+        .visitor-count { font-size: 12px; font-family: monospace; color: #D4D4D4; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+        .canvas-wrapper {
+            position: relative;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9);
+            border-radius: 12px;
+            border-left: 12px solid #262626;
+            border-right: 12px solid #262626;
+            border-top: 12px solid #262626;
+            background: #0f0f0f;
         }
-        .content-container {
-            width: 800px;
+        .bottom-panel {
+            display: flex;
+            align-items: stretch;
+            height: 128px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+        .btn-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 24px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.05);
+            width: 240px;
+        }
+        .btn-primary {
+            width: 100%; padding: 12px; border-radius: 8px; font-weight: 900;
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+            cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: linear-gradient(to right, #2563EB, #1D4ED8);
+            color: white; border-bottom: 4px solid #1E3A8A; transition: all 0.15s;
+        }
+        .btn-primary:disabled { background: #262626; color: #737373; border-bottom-color: #171717; cursor: not-allowed; }
+        .btn-primary:not(:disabled):hover { background: linear-gradient(to right, #3B82F6, #2563EB); }
+        .btn-secondary {
+            width: 100%; padding: 8px; background: transparent;
+            color: #EF4444; border: 1px solid rgba(127,29,29,0.5);
+            border-radius: 8px; font-weight: 700; font-size: 10px;
+            text-transform: uppercase; letter-spacing: -0.025em; cursor: pointer;
+        }
+        .btn-secondary:hover { background: rgba(127,29,29,0.2); }
+        .info-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px; }
+        .info-text { font-size: 11px; font-weight: 700; color: #FEFCE8; text-align: center; line-height: 1.6; }
+        .info-text-sub { font-size: 10px; opacity: 0.7; font-style: italic; font-weight: 400; }
+        .spin-area { display: flex; align-items: center; gap: 16px; padding: 0 24px; border-left: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); }
+        .spin-label { display: flex; flex-direction: column; text-align: right; }
+        .spin-label-main { font-size: 9px; font-weight: 700; color: #60A5FA; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+        .spin-label-sub { font-size: 8px; color: #737373; line-height: 1.4; }
+        .spin-pad {
+            position: relative; width: 64px; height: 64px;
+            background: #171717; border-radius: 50%; border: 1px solid #404040;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .spin-line-h { position: absolute; width: 100%; height: 0.5px; background: rgba(255,255,255,0.05); }
+        .spin-line-v { position: absolute; height: 100%; width: 0.5px; background: rgba(255,255,255,0.05); }
+        .spin-dot {
+            position: absolute; width: 12px; height: 12px;
+            background: #DC2626; border-radius: 50%;
+            box-shadow: 0 0 8px rgba(220,38,38,0.8);
+            border: 1px solid #F87171;
+            transition: transform 0.075s;
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="app">
+    <div class="content-container header">
+        <h1>POOL <span>BALL PATH</span></h1>
+        <div class="visitor-box">
+            <span class="visitor-label">CCL Visitors</span>
+            <div class="visitor-count" id="visitorCount">1285</div>
+        </div>
+    </div>
 
-    <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
-        const { useRef, useEffect, useState, useCallback } = React;
-
-        const CANVAS_WIDTH = 800;
-        const CANVAS_HEIGHT = 580; 
-        const TABLE_PLAY_WIDTH = 640;
-        const TABLE_PLAY_HEIGHT = 320;
-        const CUSHION_WIDTH = 35;
-        const TOP_STORAGE_HEIGHT = 80;
-
-        const BOUND_LEFT = (CANVAS_WIDTH - TABLE_PLAY_WIDTH) / 2;
-        const BOUND_RIGHT = BOUND_LEFT + TABLE_PLAY_WIDTH;
-        const BOUND_TOP = TOP_STORAGE_HEIGHT + 20;
-        const BOUND_BOTTOM = BOUND_TOP + TABLE_PLAY_HEIGHT;
-
-        const POCKET_RADIUS = 22;
-        const BALL_RADIUS = 9;
-        const FRICTION = 0.988;
-        const MIN_VELOCITY = 0.05;
-
-        const POCKETS = [
-            { x: BOUND_LEFT, y: BOUND_TOP },
-            { x: (BOUND_LEFT + BOUND_RIGHT) / 2, y: BOUND_TOP - 2 },
-            { x: BOUND_RIGHT, y: BOUND_TOP },
-            { x: BOUND_LEFT, y: BOUND_BOTTOM },
-            { x: (BOUND_LEFT + BOUND_RIGHT) / 2, y: BOUND_BOTTOM + 2 },
-            { x: BOUND_RIGHT, y: BOUND_BOTTOM }
-        ];
-
-        const BALL_COLORS = {
-            0: '#FFFFFF', 1: '#F4CE42', 2: '#28469E', 3: '#D11A2A', 4: '#5B2C6F',
-            5: '#E67E22', 6: '#1E8449', 7: '#7B241C', 8: '#111111',
-            9: '#F4CE42', 10: '#28469E', 11: '#D11A2A', 12: '#5B2C6F',
-            13: '#E67E22', 14: '#1E8449', 15: '#7B241C'
-        };
-
-        function App() {
-            const canvasRef = useRef(null);
-            const [spin, setSpin] = useState({ x: 0, y: 0 });
-            const [gameState, setGameState] = useState('placing');
-            const [ballsInTableCount, setBallsInTableCount] = useState(0);
-            const [visitorCount, setVisitorCount] = useState(0);
-
-            const spinRef = useRef({ x: 0, y: 0 });
-            const engine = useRef({
-                balls: [],
-                isDragging: false,
-                draggedBall: null,
-                dragStart: { x: 0, y: 0 },
-                dragCurrent: { x: 0, y: 0 },
-                allStopped: true,
-                hasScratched: false,
-                lastAimAngle: 0,
-                cueAnimOffset: 0,
-                isAnimatingShot: false,
-                pendingShot: null
-            });
-
-            useEffect(() => {
-                let count = parseInt(localStorage.getItem('pool_visitor_count') || '1284');
-                count += 1;
-                localStorage.setItem('pool_visitor_count', count.toString());
-                setVisitorCount(count);
-            }, []);
-
-            const initBalls = () => {
-                const newBalls = [];
-                newBalls.push({
-                    id: 0, type: 'cue', color: BALL_COLORS[0],
-                    x: BOUND_LEFT + TABLE_PLAY_WIDTH * 0.25, y: BOUND_TOP + TABLE_PLAY_HEIGHT / 2,
-                    vx: 0, vy: 0, spinX: 0, spinY: 0, isPotted: false, inTable: true
-                });
-                for (let i = 1; i <= 15; i++) {
-                    newBalls.push({
-                        id: i, type: i > 8 ? 'stripe' : (i === 8 ? 'black' : 'solid'),
-                        color: BALL_COLORS[i], x: 45 + (i - 1) * 50, y: 40,
-                        vx: 0, vy: 0, isPotted: false, inTable: false
-                    });
-                }
-                engine.current.balls = newBalls;
-                engine.current.allStopped = true;
-                setGameState('placing');
-                setBallsInTableCount(0);
-                setSpin({x: 0, y: 0});
-            };
-
-            useEffect(() => { spinRef.current = spin; }, [spin]);
-
-            const applyPhysicsShot = useCallback((angle, power) => {
-                const { balls } = engine.current;
-                const cue = balls.find(b => b.id === 0);
-                if (!cue || cue.isPotted) return;
-                cue.vx = Math.cos(angle) * power;
-                cue.vy = Math.sin(angle) * power;
-                const spinStrength = power / 10;
-                cue.spinX = spinRef.current.x * spinStrength * 2.0;
-                cue.spinY = spinRef.current.y * spinStrength * 2.5;
-                engine.current.allStopped = false;
-            }, []);
-
-            const triggerShotWithAnimation = useCallback((angle, power) => {
-                if (!engine.current.allStopped || engine.current.isAnimatingShot || gameState !== 'playing') return;
-                engine.current.isAnimatingShot = true;
-                engine.current.pendingShot = { angle, power };
-                let start = null;
-                const durationBack = 250, durationForward = 60;
-                const maxPull = Math.min(power * 4, 80);
-                const animateCue = (timestamp) => {
-                    if (!start) start = timestamp;
-                    const elapsed = timestamp - start;
-                    if (elapsed < durationBack) {
-                        engine.current.cueAnimOffset = (elapsed / durationBack) * maxPull;
-                        requestAnimationFrame(animateCue);
-                    } else if (elapsed < durationBack + durationForward) {
-                        const fwd = elapsed - durationBack;
-                        engine.current.cueAnimOffset = maxPull - (fwd / durationForward) * maxPull;
-                        requestAnimationFrame(animateCue);
-                    } else {
-                        engine.current.cueAnimOffset = 0;
-                        engine.current.isAnimatingShot = false;
-                        const shot = engine.current.pendingShot;
-                        if (shot) applyPhysicsShot(shot.angle, shot.power);
-                        engine.current.pendingShot = null;
-                    }
-                };
-                requestAnimationFrame(animateCue);
-            }, [gameState, applyPhysicsShot]);
-
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    const STEP = 0.1;
-                    if (e.key === 'ArrowUp') setSpin(p => ({ ...p, y: Math.max(-1, p.y - STEP) }));
-                    else if (e.key === 'ArrowDown') setSpin(p => ({ ...p, y: Math.min(1, p.y + STEP) }));
-                    else if (e.key === 'ArrowLeft') setSpin(p => ({ ...p, x: Math.max(-1, p.x - STEP) }));
-                    else if (e.key === 'ArrowRight') setSpin(p => ({ ...p, x: Math.min(1, p.x + STEP) }));
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, []);
-
-            useEffect(() => {
-                initBalls();
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-                let animationFrameId;
-
-                const updatePhysics = () => {
-                    if (gameState !== 'playing' || engine.current.isAnimatingShot) return;
-                    const { balls } = engine.current;
-                    let anyMoving = false;
-                    balls.forEach(ball => {
-                        if (ball.isPotted || !ball.inTable) return;
-                        const speed = Math.hypot(ball.vx, ball.vy);
-                        if (speed > MIN_VELOCITY || (ball.id === 0 && (Math.abs(ball.spinX) > 0.01 || Math.abs(ball.spinY) > 0.01))) {
-                            anyMoving = true;
-                            if (ball.id === 0) {
-                                const nx = -ball.vy / (speed || 1); const ny = ball.vx / (speed || 1);
-                                ball.vx += nx * ball.spinX * 0.008; ball.vy += ny * ball.spinX * 0.008;
-                                ball.vx += (ball.vx / (speed || 1)) * ball.spinY * 0.015;
-                                ball.vy += (ball.vy / (speed || 1)) * ball.spinY * 0.015;
-                                ball.spinX *= 0.985; ball.spinY *= 0.985;
-                            }
-                            ball.x += ball.vx; ball.y += ball.vy;
-                            ball.vx *= FRICTION; ball.vy *= FRICTION;
-                        } else { ball.vx = 0; ball.vy = 0; }
-                    });
-
-                    for (let i = 0; i < balls.length; i++) {
-                        const b1 = balls[i]; if (b1.isPotted || !b1.inTable) continue;
-                        for (let j = i + 1; j < balls.length; j++) {
-                            const b2 = balls[j]; if (b2.isPotted || !b2.inTable) continue;
-                            const dx = b2.x - b1.x, dy = b2.y - b1.y;
-                            const dist = Math.hypot(dx, dy);
-                            if (dist < BALL_RADIUS * 2) {
-                                const overlap = BALL_RADIUS * 2 - dist;
-                                const nx = dx / dist, ny = dy / dist;
-                                b1.x -= nx * overlap / 2; b2.x += nx * overlap / 2;
-                                b1.y -= ny * overlap / 2; b2.y += ny * overlap / 2;
-                                const kx = b1.vx - b2.vx, ky = b1.vy - b2.vy;
-                                const p = (nx * kx + ny * ky);
-                                b1.vx -= p * nx; b1.vy -= p * ny;
-                                b2.vx += p * nx; b2.vy += p * ny;
-                            }
-                        }
-                    }
-
-                    balls.forEach(ball => {
-                        if (ball.isPotted || !ball.inTable) return;
-                        for (let pocket of POCKETS) {
-                            if (Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < POCKET_RADIUS) {
-                                ball.isPotted = true; ball.vx = 0; ball.vy = 0;
-                                if (ball.id === 0) engine.current.hasScratched = true;
-                            }
-                        }
-                        if (ball.isPotted) return;
-                        const bounce = 0.75;
-                        if (ball.x - BALL_RADIUS < BOUND_LEFT) { ball.x = BOUND_LEFT + BALL_RADIUS; ball.vx *= -bounce; }
-                        else if (ball.x + BALL_RADIUS > BOUND_RIGHT) { ball.x = BOUND_RIGHT - BALL_RADIUS; ball.vx *= -bounce; }
-                        if (ball.y - BALL_RADIUS < BOUND_TOP) { ball.y = BOUND_TOP + BALL_RADIUS; ball.vy *= -bounce; }
-                        else if (ball.y + BALL_RADIUS > BOUND_BOTTOM) { ball.y = BOUND_BOTTOM + BALL_RADIUS; ball.vy *= -bounce; }
-                    });
-
-                    if (!anyMoving && !engine.current.allStopped) {
-                        engine.current.allStopped = true;
-                        if (engine.current.hasScratched) {
-                            const cue = balls.find(b => b.id === 0);
-                            cue.isPotted = false; cue.x = BOUND_LEFT + TABLE_PLAY_WIDTH * 0.25; cue.y = BOUND_TOP + TABLE_PLAY_HEIGHT / 2;
-                            cue.vx = 0; cue.vy = 0; engine.current.hasScratched = false;
-                        }
-                    }
-                };
-
-                const findCollision = (startX, startY, ux, uy, ignoreBalls = []) => {
-                    const { balls } = engine.current;
-                    let dist = 10000, ball = null, type = 'wall';
-                    
-                    for (let p of POCKETS) {
-                        const vpx = p.x - startX, vpy = p.y - startY;
-                        const proj = vpx * ux + vpy * uy;
-                        if (proj < 0) continue;
-                        const distToRay = Math.abs(vpx * (-uy) + vpy * ux);
-                        if (distToRay < POCKET_RADIUS * 0.8) {
-                            const d = proj; 
-                            if (d > 0.1 && d < dist) { dist = d; type = 'pocket'; ball = null; }
-                        }
-                    }
-
-                    balls.forEach(b => {
-                        if (b.isPotted || !b.inTable || ignoreBalls.includes(b)) return;
-                        const vcx = b.x - startX, vcy = b.y - startY;
-                        const proj = vcx * ux + vcy * uy;
-                        if (proj < 0) return;
-                        const distToRay = Math.abs(vcx * (-uy) + vcy * ux);
-                        if (distToRay < BALL_RADIUS * 2) {
-                            const d = proj - Math.sqrt(Math.pow(BALL_RADIUS * 2, 2) - Math.pow(distToRay, 2));
-                            if (d > 0.1 && d < dist) { dist = d; ball = b; type = 'ball'; }
-                        }
-                    });
-
-                    if (type !== 'pocket') {
-                        if (ux > 0) { let d = (BOUND_RIGHT - BALL_RADIUS - startX) / ux; if (d > 0.1 && d < dist) { dist = d; type = 'wall'; ball = null; } }
-                        else if (ux < 0) { let d = (BOUND_LEFT + BALL_RADIUS - startX) / ux; if (d > 0.1 && d < dist) { dist = d; type = 'wall'; ball = null; } }
-                        if (uy > 0) { let d = (BOUND_BOTTOM - BALL_RADIUS - startY) / uy; if (d > 0.1 && d < dist) { dist = d; type = 'wall'; ball = null; } }
-                        else if (uy < 0) { let d = (BOUND_TOP + BALL_RADIUS - startY) / uy; if (d > 0.1 && d < dist) { dist = d; type = 'wall'; ball = null; } }
-                    }
-                    
-                    return { dist, x: startX + ux * dist, y: startY + uy * dist, type, ball };
-                };
-
-                const drawPathRecursive = (startX, startY, ux, uy, ignoreBalls, color, depth, maxDepth, dash = []) => {
-                    if (depth >= maxDepth) return;
-                    
-                    const col = findCollision(startX, startY, ux, uy, ignoreBalls);
-                    if (col.dist > 2000) return;
-
-                    ctx.beginPath();
-                    ctx.setLineDash(dash);
-                    ctx.strokeStyle = color;
-                    ctx.globalAlpha = Math.max(0.1, 1.0 - (depth * 0.15));
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(col.x, col.y);
-                    ctx.stroke();
-                    ctx.globalAlpha = 1.0;
-                    ctx.setLineDash([]);
-
-                    if (col.type === 'pocket') return;
-
-                    if (col.type === 'ball') {
-                        const hitBall = col.ball;
-                        const dx = hitBall.x - col.x, dy = hitBall.y - col.y;
-                        const dist = Math.hypot(dx, dy);
-                        
-                        // 1. 子球去向
-                        const objUx = dx / (dist || 1), objUy = dy / (dist || 1);
-                        drawPathRecursive(hitBall.x, hitBall.y, objUx, objUy, [hitBall], hitBall.color, depth + 1, maxDepth);
-
-                        // 2. 母球折射 (90度切線) 並繼續支援後續反彈
-                        let tUx = -objUy, tUy = objUx;
-                        const dot = tUx * ux + tUy * uy;
-                        if (dot < 0) { tUx = -tUx; tUy = -tUy; }
-                        drawPathRecursive(col.x, col.y, tUx, tUy, ignoreBalls, color, depth + 1, maxDepth, [4, 2]);
-
-                    } else if (col.type === 'wall') {
-                        let rUx = ux, rUy = uy;
-                        if (Math.abs(col.x - (BOUND_LEFT + BALL_RADIUS)) < 1.5 || Math.abs(col.x - (BOUND_RIGHT - BALL_RADIUS)) < 1.5) rUx *= -1;
-                        if (Math.abs(col.y - (BOUND_TOP + BALL_RADIUS)) < 1.5 || Math.abs(col.y - (BOUND_BOTTOM - BALL_RADIUS)) < 1.5) rUy *= -1;
-                        drawPathRecursive(col.x, col.y, rUx, rUy, ignoreBalls, color, depth + 1, maxDepth, dash);
-                    }
-                };
-
-                const draw = () => {
-                    const { balls, isDragging, dragStart, dragCurrent, allStopped, lastAimAngle, draggedBall, cueAnimOffset, isAnimatingShot } = engine.current;
-                    const cue = balls.find(b => b.id === 0);
-                    const subBallsInTable = balls.filter(b => b.id !== 0 && b.inTable).length;
-
-                    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                    ctx.fillStyle = '#151515'; ctx.fillRect(0, 0, CANVAS_WIDTH, TOP_STORAGE_HEIGHT);
-                    ctx.fillStyle = '#3E2723'; ctx.fillRect(BOUND_LEFT - CUSHION_WIDTH, BOUND_TOP - CUSHION_WIDTH, TABLE_PLAY_WIDTH + CUSHION_WIDTH * 2, TABLE_PLAY_HEIGHT + CUSHION_WIDTH * 2);
-                    ctx.fillStyle = '#1D7A46'; ctx.fillRect(BOUND_LEFT, BOUND_TOP, TABLE_PLAY_WIDTH, TABLE_PLAY_HEIGHT);
-
-                    ctx.fillStyle = '#DDD';
-                    const drawDiamond = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); };
-                    for (let i = 1; i <= 7; i++) { if (i === 4) continue; drawDiamond(BOUND_LEFT + (TABLE_PLAY_WIDTH / 8) * i, BOUND_TOP - 18); drawDiamond(BOUND_LEFT + (TABLE_PLAY_WIDTH / 8) * i, BOUND_BOTTOM + 18); }
-                    for (let i = 1; i <= 3; i++) { drawDiamond(BOUND_LEFT - 18, BOUND_TOP + (TABLE_PLAY_HEIGHT / 4) * i); drawDiamond(BOUND_RIGHT + 18, BOUND_TOP + (TABLE_PLAY_HEIGHT / 4) * i); }
-
-                    ctx.fillStyle = '#000';
-                    POCKETS.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2); ctx.fill(); });
-
-                    const isInteractive = (gameState === 'playing' && allStopped && cue && !cue.isPotted) || (gameState === 'placing' && subBallsInTable > 0 && !draggedBall && cue);
-                    
-                    if (isInteractive && !isAnimatingShot) {
-                        let curUx = Math.cos(lastAimAngle), curUy = Math.sin(lastAimAngle);
-                        ctx.lineWidth = 1.5;
-                        drawPathRecursive(cue.x, cue.y, curUx, curUy, [cue], "rgba(255,255,255,0.8)", 0, 8, [6, 4]);
-                        ctx.lineWidth = 1;
-                    }
-
-                    if (isInteractive || isAnimatingShot) {
-                        let powerDist = isDragging ? Math.min(150, Math.hypot(dragCurrent.x - dragStart.x, dragCurrent.y - dragStart.y)) : 0;
-                        if (isAnimatingShot) powerDist = cueAnimOffset;
-                        ctx.save(); ctx.translate(cue.x, cue.y); ctx.rotate(lastAimAngle);
-                        const offset = BALL_RADIUS + 5 + powerDist;
-                        ctx.fillStyle = '#D4A373'; ctx.beginPath(); ctx.moveTo(-offset, -3); ctx.lineTo(-offset - 250, -6); ctx.lineTo(-offset - 250, 6); ctx.lineTo(-offset, 3); ctx.fill();
-                        ctx.restore();
-                    }
-
-                    balls.forEach(ball => {
-                        if (ball.isPotted) return;
-                        const isDraggingThis = draggedBall && draggedBall.id === ball.id;
-                        ctx.save(); ctx.translate(isDraggingThis ? dragCurrent.x : ball.x, isDraggingThis ? dragCurrent.y : ball.y);
-                        ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2); ctx.fill();
-                        if (ball.type === 'stripe') { ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, BALL_RADIUS, Math.PI/4, Math.PI*3/4); ctx.arc(0, 0, BALL_RADIUS, Math.PI*5/4, Math.PI*7/4); ctx.fill(); }
-                        if (ball.id !== 0) { ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, BALL_RADIUS * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'black'; ctx.font = 'bold 8px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ball.id, 0, 1); }
-                        ctx.restore();
-                    });
-                };
-
-                const gameLoop = () => { updatePhysics(); draw(); animationFrameId = requestAnimationFrame(gameLoop); };
-                gameLoop();
-                return () => cancelAnimationFrame(animationFrameId);
-            }, [gameState, triggerShotWithAnimation]);
-
-            const handlePointerDown = (e) => {
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = e.clientX - rect.left, y = e.clientY - rect.top;
-                if (gameState === 'placing') {
-                    const ball = engine.current.balls.find(b => !b.isPotted && Math.hypot(b.x - x, b.y - y) < BALL_RADIUS * 2);
-                    if (ball) { engine.current.draggedBall = ball; engine.current.dragCurrent = { x, y }; }
-                } else if (gameState === 'playing' && engine.current.allStopped && !engine.current.isAnimatingShot) {
-                    const cue = engine.current.balls.find(b => b.id === 0);
-                    if (cue && !cue.isPotted) { engine.current.isDragging = true; engine.current.dragStart = { x, y }; engine.current.dragCurrent = { x, y }; }
-                }
-            };
-
-            const handlePointerMove = (e) => {
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = e.clientX - rect.left, y = e.clientY - rect.top;
-                engine.current.dragCurrent = { x, y };
-                const cue = engine.current.balls.find(b => b.id === 0);
-                if (!cue) return;
-                if (gameState === 'placing') { if (!engine.current.draggedBall) engine.current.lastAimAngle = Math.atan2(y - cue.y, x - cue.x); } 
-                else if (gameState === 'playing' && !engine.current.isAnimatingShot) {
-                    if (!engine.current.isDragging) engine.current.lastAimAngle = Math.atan2(y - cue.y, x - cue.x);
-                    else { const dx = x - engine.current.dragStart.x, dy = y - engine.current.dragStart.y; if (Math.hypot(dx, dy) > 5) engine.current.lastAimAngle = Math.atan2(-dy, -dx); }
-                }
-            };
-
-            const handlePointerUp = () => {
-                if (gameState === 'placing' && engine.current.draggedBall) {
-                    const ball = engine.current.draggedBall;
-                    const { x, y } = engine.current.dragCurrent;
-                    ball.x = x; ball.y = y;
-                    ball.inTable = x > BOUND_LEFT + BALL_RADIUS && x < BOUND_RIGHT - BALL_RADIUS && y > BOUND_TOP + BALL_RADIUS && y < BOUND_BOTTOM - BALL_RADIUS;
-                    engine.current.draggedBall = null;
-                    setBallsInTableCount(engine.current.balls.filter(b => b.id !== 0 && b.inTable).length);
-                } else if (gameState === 'playing' && engine.current.isDragging) {
-                    engine.current.isDragging = false;
-                    const dist = Math.hypot(engine.current.dragCurrent.x - engine.current.dragStart.x, engine.current.dragCurrent.y - engine.current.dragStart.y);
-                    if (dist > 10) triggerShotWithAnimation(engine.current.lastAimAngle, Math.min(dist * 0.12, 22));
-                }
-            };
-
-            return (
-                <div className="flex flex-col items-center justify-center min-h-screen select-none bg-gradient-to-b from-[#111] to-[#050505] py-16">
-                    <div className="content-container flex justify-between items-center px-4 mb-10">
-                        <h1 className="text-3xl font-black text-white tracking-tighter italic">
-                            POOL <span className="text-yellow-500">BALL PATH</span>
-                        </h1>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">CCL Visitors</span>
-                            <div className="text-xs font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">{visitorCount.toLocaleString()}</div>
-                        </div>
-                    </div>
-
-                    <div className="relative shadow-[0_0_60px_rgba(0,0,0,0.9)] rounded-xl border-x-[12px] border-t-[12px] border-neutral-800 bg-[#0f0f0f] content-container">
-                        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="cursor-crosshair outline-none" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} />
-                        <div className="w-full glass-panel flex items-stretch h-32 border-t border-white/10 rounded-b-xl overflow-hidden">
-                            <div className="flex flex-col justify-center gap-2 px-6 border-r border-white/5 bg-white/5 w-60">
-                                {gameState === 'placing' ? (
-                                    <button onClick={() => setGameState('playing')} disabled={ballsInTableCount === 0} className={`w-full py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all btn-shadow flex items-center justify-center gap-2 ${ballsInTableCount > 0 ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white border-b-4 border-blue-900' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed border-b-4 border-neutral-900'}`}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
-                                        確認佈局 ({ballsInTableCount})
-                                    </button>
-                                ) : (
-                                    <button onClick={() => setGameState('placing')} className="w-full py-3 bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-600 hover:to-neutral-700 text-white rounded-lg font-black text-xs uppercase tracking-widest transition-all btn-shadow border-b-4 border-neutral-950">重新佈球</button>
-                                )}
-                                <button onClick={() => initBalls()} className="w-full py-2 bg-transparent hover:bg-red-900/20 text-red-500 border border-red-900/50 rounded-lg font-bold text-[10px] uppercase tracking-tighter">全部重置 Reset</button>
-                            </div>
-                            <div className="flex-1 flex flex-col items-center justify-center px-4">
-                                <div className="text-[11px] font-bold text-yellow-100 status-glow text-center leading-relaxed">
-                                    請將上方子球拖入球桌佈局，另外母球也可以任意改變位置。<br/>
-                                    <span className="text-[10px] opacity-70 italic font-normal">Please take the object balls above into the table layout, and the cue ball can also be repositioned freely</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4 px-6 border-l border-white/5 bg-black/20">
-                                <div className="flex flex-col text-right">
-                                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1">Spin Control</span>
-                                    <span className="text-[8px] text-neutral-500 leading-tight">使用方向鍵<br/>調整偏移</span>
-                                </div>
-                                <div className="relative w-16 h-16 bg-neutral-900 rounded-full border border-neutral-800 shadow-inner flex items-center justify-center overflow-hidden">
-                                    <div className="absolute w-full h-[0.5px] bg-white/5"></div><div className="absolute h-full w-[0.5px] bg-white/5"></div>
-                                    <div className="absolute w-3 h-3 bg-red-600 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.8)] border border-red-400 transition-all duration-75" style={{ transform: `translate(${spin.x * 24}px, ${spin.y * 24}px)` }}></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="canvas-wrapper content-container">
+        <canvas id="gameCanvas" width="800" height="580"></canvas>
+        <div class="bottom-panel glass-panel">
+            <div class="btn-area">
+                <button id="mainBtn" class="btn-primary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+                    <span id="mainBtnText">確認佈局 (0)</span>
+                </button>
+                <button id="resetBtn" class="btn-secondary">全部重置 Reset</button>
+            </div>
+            <div class="info-area">
+                <div class="info-text status-glow" id="statusText">
+                    請將上方子球拖入球桌佈局，另外母球也可以任意改變位置。<br>
+                    <span class="info-text-sub">Please take the object balls above into the table layout, and the cue ball can also be repositioned freely</span>
                 </div>
-            );
-        }
+            </div>
+            <div class="spin-area">
+                <div class="spin-label">
+                    <span class="spin-label-main">Spin Control</span>
+                    <span class="spin-label-sub">使用方向鍵<br>調整偏移</span>
+                </div>
+                <div class="spin-pad">
+                    <div class="spin-line-h"></div>
+                    <div class="spin-line-v"></div>
+                    <div class="spin-dot" id="spinDot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+<script>
+const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 580;
+const TABLE_PLAY_WIDTH = 640, TABLE_PLAY_HEIGHT = 320;
+const CUSHION_WIDTH = 35, TOP_STORAGE_HEIGHT = 80;
+const BOUND_LEFT = (CANVAS_WIDTH - TABLE_PLAY_WIDTH) / 2;
+const BOUND_RIGHT = BOUND_LEFT + TABLE_PLAY_WIDTH;
+const BOUND_TOP = TOP_STORAGE_HEIGHT + 20;
+const BOUND_BOTTOM = BOUND_TOP + TABLE_PLAY_HEIGHT;
+const POCKET_RADIUS = 22, BALL_RADIUS = 9;
+const FRICTION = 0.988, MIN_VELOCITY = 0.05;
+
+const POCKETS = [
+    { x: BOUND_LEFT, y: BOUND_TOP },
+    { x: (BOUND_LEFT + BOUND_RIGHT) / 2, y: BOUND_TOP - 2 },
+    { x: BOUND_RIGHT, y: BOUND_TOP },
+    { x: BOUND_LEFT, y: BOUND_BOTTOM },
+    { x: (BOUND_LEFT + BOUND_RIGHT) / 2, y: BOUND_BOTTOM + 2 },
+    { x: BOUND_RIGHT, y: BOUND_BOTTOM }
+];
+
+const BALL_COLORS = {
+    0:'#FFFFFF',1:'#F4CE42',2:'#28469E',3:'#D11A2A',4:'#5B2C6F',
+    5:'#E67E22',6:'#1E8449',7:'#7B241C',8:'#111111',
+    9:'#F4CE42',10:'#28469E',11:'#D11A2A',12:'#5B2C6F',
+    13:'#E67E22',14:'#1E8449',15:'#7B241C'
+};
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mainBtn = document.getElementById('mainBtn');
+const mainBtnText = document.getElementById('mainBtnText');
+const resetBtn = document.getElementById('resetBtn');
+const spinDot = document.getElementById('spinDot');
+const statusText = document.getElementById('statusText');
+const visitorCountEl = document.getElementById('visitorCount');
+
+// Visitor count
+try {
+    let count = parseInt(localStorage.getItem('pool_visitor_count') || '1284');
+    count += 1;
+    localStorage.setItem('pool_visitor_count', count.toString());
+    visitorCountEl.textContent = count.toLocaleString();
+} catch(e) {}
+
+let spin = { x: 0, y: 0 };
+let gameState = 'placing'; // 'placing' | 'playing'
+let balls = [];
+
+const eng = {
+    isDragging: false,
+    draggedBall: null,
+    dragStart: { x: 0, y: 0 },
+    dragCurrent: { x: 0, y: 0 },
+    allStopped: true,
+    hasScratched: false,
+    lastAimAngle: 0,
+    cueAnimOffset: 0,
+    isAnimatingShot: false,
+    pendingShot: null
+};
+
+function initBalls() {
+    balls = [];
+    balls.push({ id:0, type:'cue', color:BALL_COLORS[0],
+        x: BOUND_LEFT + TABLE_PLAY_WIDTH * 0.25, y: BOUND_TOP + TABLE_PLAY_HEIGHT / 2,
+        vx:0, vy:0, spinX:0, spinY:0, isPotted:false, inTable:true });
+    for (let i = 1; i <= 15; i++) {
+        balls.push({ id:i, type: i>8?'stripe':(i===8?'black':'solid'),
+            color: BALL_COLORS[i], x: 45+(i-1)*50, y: 40,
+            vx:0, vy:0, isPotted:false, inTable:false });
+    }
+    eng.allStopped = true;
+    eng.hasScratched = false;
+    eng.isDragging = false;
+    eng.draggedBall = null;
+    eng.isAnimatingShot = false;
+    spin = { x:0, y:0 };
+    gameState = 'placing';
+    updateUI();
+}
+
+function getBallsInTableCount() {
+    return balls.filter(b => b.id !== 0 && b.inTable).length;
+}
+
+function updateUI() {
+    const count = getBallsInTableCount();
+    if (gameState === 'placing') {
+        mainBtn.disabled = count === 0;
+        mainBtnText.textContent = `確認佈局 (${count})`;
+        mainBtn.style.background = count > 0 ? 'linear-gradient(to right, #2563EB, #1D4ED8)' : '';
+        mainBtn.style.color = count > 0 ? 'white' : '';
+        mainBtn.style.borderBottomColor = count > 0 ? '#1E3A8A' : '';
+        statusText.innerHTML = '請將上方子球拖入球桌佈局，另外母球也可以任意改變位置。<br><span class="info-text-sub">Please take the object balls above into the table layout, and the cue ball can also be repositioned freely</span>';
+    } else {
+        mainBtn.disabled = false;
+        mainBtnText.textContent = '重新佈球';
+        mainBtn.style.background = 'linear-gradient(to right, #404040, #262626)';
+        mainBtn.style.color = 'white';
+        mainBtn.style.borderBottomColor = '#0a0a0a';
+        statusText.innerHTML = '拖曳瞄準後放開擊球，方向鍵調整旋轉。<br><span class="info-text-sub">Drag to aim and release to shoot. Use arrow keys to apply spin.</span>';
+    }
+    spinDot.style.transform = `translate(${spin.x * 24}px, ${spin.y * 24}px)`;
+}
+
+mainBtn.addEventListener('click', () => {
+    if (gameState === 'placing') {
+        if (getBallsInTableCount() > 0) { gameState = 'playing'; updateUI(); }
+    } else {
+        gameState = 'placing'; updateUI();
+    }
+});
+resetBtn.addEventListener('click', () => initBalls());
+
+window.addEventListener('keydown', (e) => {
+    const STEP = 0.1;
+    if (e.key === 'ArrowUp') spin.y = Math.max(-1, spin.y - STEP);
+    else if (e.key === 'ArrowDown') spin.y = Math.min(1, spin.y + STEP);
+    else if (e.key === 'ArrowLeft') spin.x = Math.max(-1, spin.x - STEP);
+    else if (e.key === 'ArrowRight') spin.x = Math.min(1, spin.x + STEP);
+    else return;
+    updateUI();
+});
+
+function applyPhysicsShot(angle, power) {
+    const cue = balls.find(b => b.id === 0);
+    if (!cue || cue.isPotted) return;
+    cue.vx = Math.cos(angle) * power;
+    cue.vy = Math.sin(angle) * power;
+    const spinStrength = power / 10;
+    cue.spinX = spin.x * spinStrength * 2.0;
+    cue.spinY = spin.y * spinStrength * 2.5;
+    eng.allStopped = false;
+}
+
+function triggerShotWithAnimation(angle, power) {
+    if (!eng.allStopped || eng.isAnimatingShot || gameState !== 'playing') return;
+    eng.isAnimatingShot = true;
+    eng.pendingShot = { angle, power };
+    let start = null;
+    const durationBack = 250, durationForward = 60;
+    const maxPull = Math.min(power * 4, 80);
+    function animateCue(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        if (elapsed < durationBack) {
+            eng.cueAnimOffset = (elapsed / durationBack) * maxPull;
+            requestAnimationFrame(animateCue);
+        } else if (elapsed < durationBack + durationForward) {
+            const fwd = elapsed - durationBack;
+            eng.cueAnimOffset = maxPull - (fwd / durationForward) * maxPull;
+            requestAnimationFrame(animateCue);
+        } else {
+            eng.cueAnimOffset = 0;
+            eng.isAnimatingShot = false;
+            const shot = eng.pendingShot;
+            if (shot) applyPhysicsShot(shot.angle, shot.power);
+            eng.pendingShot = null;
+        }
+    }
+    requestAnimationFrame(animateCue);
+}
+
+function updatePhysics() {
+    if (gameState !== 'playing' || eng.isAnimatingShot) return;
+    let anyMoving = false;
+    balls.forEach(ball => {
+        if (ball.isPotted || !ball.inTable) return;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > MIN_VELOCITY || (ball.id === 0 && (Math.abs(ball.spinX) > 0.01 || Math.abs(ball.spinY) > 0.01))) {
+            anyMoving = true;
+            if (ball.id === 0) {
+                const nx = -ball.vy / (speed||1), ny = ball.vx / (speed||1);
+                ball.vx += nx * ball.spinX * 0.008; ball.vy += ny * ball.spinX * 0.008;
+                ball.vx += (ball.vx/(speed||1)) * ball.spinY * 0.015;
+                ball.vy += (ball.vy/(speed||1)) * ball.spinY * 0.015;
+                ball.spinX *= 0.985; ball.spinY *= 0.985;
+            }
+            ball.x += ball.vx; ball.y += ball.vy;
+            ball.vx *= FRICTION; ball.vy *= FRICTION;
+        } else { ball.vx = 0; ball.vy = 0; }
+    });
+
+    for (let i = 0; i < balls.length; i++) {
+        const b1 = balls[i]; if (b1.isPotted || !b1.inTable) continue;
+        for (let j = i+1; j < balls.length; j++) {
+            const b2 = balls[j]; if (b2.isPotted || !b2.inTable) continue;
+            const dx = b2.x-b1.x, dy = b2.y-b1.y, dist = Math.hypot(dx,dy);
+            if (dist < BALL_RADIUS*2 && dist > 0) {
+                const overlap = BALL_RADIUS*2-dist, nx=dx/dist, ny=dy/dist;
+                b1.x -= nx*overlap/2; b2.x += nx*overlap/2;
+                b1.y -= ny*overlap/2; b2.y += ny*overlap/2;
+                const kx=b1.vx-b2.vx, ky=b1.vy-b2.vy, p=nx*kx+ny*ky;
+                b1.vx -= p*nx; b1.vy -= p*ny;
+                b2.vx += p*nx; b2.vy += p*ny;
+            }
+        }
+    }
+
+    balls.forEach(ball => {
+        if (ball.isPotted || !ball.inTable) return;
+        for (const pocket of POCKETS) {
+            if (Math.hypot(ball.x-pocket.x, ball.y-pocket.y) < POCKET_RADIUS) {
+                ball.isPotted = true; ball.vx = 0; ball.vy = 0;
+                if (ball.id === 0) eng.hasScratched = true;
+            }
+        }
+        if (ball.isPotted) return;
+        const bounce = 0.75;
+        if (ball.x-BALL_RADIUS < BOUND_LEFT) { ball.x=BOUND_LEFT+BALL_RADIUS; ball.vx*=-bounce; }
+        else if (ball.x+BALL_RADIUS > BOUND_RIGHT) { ball.x=BOUND_RIGHT-BALL_RADIUS; ball.vx*=-bounce; }
+        if (ball.y-BALL_RADIUS < BOUND_TOP) { ball.y=BOUND_TOP+BALL_RADIUS; ball.vy*=-bounce; }
+        else if (ball.y+BALL_RADIUS > BOUND_BOTTOM) { ball.y=BOUND_BOTTOM-BALL_RADIUS; ball.vy*=-bounce; }
+    });
+
+    if (!anyMoving && !eng.allStopped) {
+        eng.allStopped = true;
+        if (eng.hasScratched) {
+            const cue = balls.find(b=>b.id===0);
+            if (cue) { cue.isPotted=false; cue.x=BOUND_LEFT+TABLE_PLAY_WIDTH*0.25; cue.y=BOUND_TOP+TABLE_PLAY_HEIGHT/2; cue.vx=0; cue.vy=0; }
+            eng.hasScratched = false;
+        }
+    }
+}
+
+function findCollision(startX, startY, ux, uy, ignoreBalls=[]) {
+    let dist = 10000, ball = null, type = 'wall';
+    for (const p of POCKETS) {
+        const vpx=p.x-startX, vpy=p.y-startY, proj=vpx*ux+vpy*uy;
+        if (proj < 0) continue;
+        const distToRay = Math.abs(vpx*(-uy)+vpy*ux);
+        if (distToRay < POCKET_RADIUS*0.8 && proj > 0.1 && proj < dist) { dist=proj; type='pocket'; ball=null; }
+    }
+    balls.forEach(b => {
+        if (b.isPotted || !b.inTable || ignoreBalls.includes(b)) return;
+        const vcx=b.x-startX, vcy=b.y-startY, proj=vcx*ux+vcy*uy;
+        if (proj < 0) return;
+        const distToRay=Math.abs(vcx*(-uy)+vcy*ux);
+        if (distToRay < BALL_RADIUS*2) {
+            const underRoot = Math.pow(BALL_RADIUS*2,2)-Math.pow(distToRay,2);
+            if (underRoot < 0) return;
+            const d = proj-Math.sqrt(underRoot);
+            if (d > 0.1 && d < dist) { dist=d; ball=b; type='ball'; }
+        }
+    });
+    if (type !== 'pocket') {
+        const checks = [
+            { cond: ux>0, d: (BOUND_RIGHT-BALL_RADIUS-startX)/ux },
+            { cond: ux<0, d: (BOUND_LEFT+BALL_RADIUS-startX)/ux },
+            { cond: uy>0, d: (BOUND_BOTTOM-BALL_RADIUS-startY)/uy },
+            { cond: uy<0, d: (BOUND_TOP+BALL_RADIUS-startY)/uy }
+        ];
+        checks.forEach(c => { if (c.cond && c.d > 0.1 && c.d < dist) { dist=c.d; type='wall'; ball=null; } });
+    }
+    return { dist, x:startX+ux*dist, y:startY+uy*dist, type, ball };
+}
+
+function drawPathRecursive(startX, startY, ux, uy, ignoreBalls, color, depth, maxDepth, dash=[]) {
+    if (depth >= maxDepth) return;
+    const col = findCollision(startX, startY, ux, uy, ignoreBalls);
+    if (col.dist > 2000) return;
+    ctx.beginPath(); ctx.setLineDash(dash);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = Math.max(0.1, 1.0-(depth*0.15));
+    ctx.moveTo(startX,startY); ctx.lineTo(col.x,col.y); ctx.stroke();
+    ctx.globalAlpha = 1.0; ctx.setLineDash([]);
+    if (col.type === 'pocket') return;
+    if (col.type === 'ball') {
+        const dx=col.ball.x-col.x, dy=col.ball.y-col.y, d=Math.hypot(dx,dy)||1;
+        const objUx=dx/d, objUy=dy/d;
+        drawPathRecursive(col.ball.x, col.ball.y, objUx, objUy, [col.ball], col.ball.color, depth+1, maxDepth);
+        let tUx=-objUy, tUy=objUx;
+        if (tUx*ux+tUy*uy < 0) { tUx=-tUx; tUy=-tUy; }
+        drawPathRecursive(col.x, col.y, tUx, tUy, ignoreBalls, color, depth+1, maxDepth, [4,2]);
+    } else if (col.type === 'wall') {
+        let rUx=ux, rUy=uy;
+        if (Math.abs(col.x-(BOUND_LEFT+BALL_RADIUS))<1.5 || Math.abs(col.x-(BOUND_RIGHT-BALL_RADIUS))<1.5) rUx*=-1;
+        if (Math.abs(col.y-(BOUND_TOP+BALL_RADIUS))<1.5 || Math.abs(col.y-(BOUND_BOTTOM-BALL_RADIUS))<1.5) rUy*=-1;
+        drawPathRecursive(col.x, col.y, rUx, rUy, ignoreBalls, color, depth+1, maxDepth, dash);
+    }
+}
+
+function draw() {
+    const cue = balls.find(b=>b.id===0);
+    const isInteractive = (gameState==='playing' && eng.allStopped && cue && !cue.isPotted) ||
+        (gameState==='placing' && getBallsInTableCount()>0 && !eng.draggedBall && cue);
+
+    ctx.fillStyle='#0a0a0a'; ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.fillStyle='#151515'; ctx.fillRect(0,0,CANVAS_WIDTH,TOP_STORAGE_HEIGHT);
+    ctx.fillStyle='#3E2723'; ctx.fillRect(BOUND_LEFT-CUSHION_WIDTH, BOUND_TOP-CUSHION_WIDTH, TABLE_PLAY_WIDTH+CUSHION_WIDTH*2, TABLE_PLAY_HEIGHT+CUSHION_WIDTH*2);
+    ctx.fillStyle='#1D7A46'; ctx.fillRect(BOUND_LEFT,BOUND_TOP,TABLE_PLAY_WIDTH,TABLE_PLAY_HEIGHT);
+
+    ctx.fillStyle='#DDD';
+    function drawDiamond(x,y) { ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill(); }
+    for (let i=1;i<=7;i++) { if(i===4) continue; drawDiamond(BOUND_LEFT+(TABLE_PLAY_WIDTH/8)*i, BOUND_TOP-18); drawDiamond(BOUND_LEFT+(TABLE_PLAY_WIDTH/8)*i, BOUND_BOTTOM+18); }
+    for (let i=1;i<=3;i++) { drawDiamond(BOUND_LEFT-18, BOUND_TOP+(TABLE_PLAY_HEIGHT/4)*i); drawDiamond(BOUND_RIGHT+18, BOUND_TOP+(TABLE_PLAY_HEIGHT/4)*i); }
+
+    ctx.fillStyle='#000';
+    POCKETS.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,POCKET_RADIUS,0,Math.PI*2); ctx.fill(); });
+
+    if (isInteractive && !eng.isAnimatingShot && cue) {
+        ctx.lineWidth = 1.5;
+        drawPathRecursive(cue.x, cue.y, Math.cos(eng.lastAimAngle), Math.sin(eng.lastAimAngle), [cue], "rgba(255,255,255,0.8)", 0, 8, [6,4]);
+        ctx.lineWidth = 1;
+    }
+
+    if (cue && (isInteractive || eng.isAnimatingShot)) {
+        let powerDist = eng.isDragging ? Math.min(150, Math.hypot(eng.dragCurrent.x-eng.dragStart.x, eng.dragCurrent.y-eng.dragStart.y)) : 0;
+        if (eng.isAnimatingShot) powerDist = eng.cueAnimOffset;
+        ctx.save(); ctx.translate(cue.x, cue.y); ctx.rotate(eng.lastAimAngle);
+        const offset = BALL_RADIUS+5+powerDist;
+        ctx.fillStyle='#D4A373'; ctx.beginPath(); ctx.moveTo(-offset,-3); ctx.lineTo(-offset-250,-6); ctx.lineTo(-offset-250,6); ctx.lineTo(-offset,3); ctx.fill();
+        ctx.restore();
+    }
+
+    balls.forEach(ball => {
+        if (ball.isPotted) return;
+        const isDraggingThis = eng.draggedBall && eng.draggedBall.id===ball.id;
+        const bx = isDraggingThis ? eng.dragCurrent.x : ball.x;
+        const by = isDraggingThis ? eng.dragCurrent.y : ball.y;
+        ctx.save(); ctx.translate(bx, by);
+        ctx.fillStyle=ball.color; ctx.beginPath(); ctx.arc(0,0,BALL_RADIUS,0,Math.PI*2); ctx.fill();
+        if (ball.type==='stripe') {
+            ctx.fillStyle='white'; ctx.beginPath();
+            ctx.arc(0,0,BALL_RADIUS,Math.PI/4,Math.PI*3/4); ctx.arc(0,0,BALL_RADIUS,Math.PI*5/4,Math.PI*7/4); ctx.fill();
+        }
+        if (ball.id!==0) {
+            ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(0,0,BALL_RADIUS*0.5,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='black'; ctx.font='bold 8px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(ball.id,0,1);
+        }
+        ctx.restore();
+    });
+}
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+    const {x,y} = getPos(e);
+    if (gameState==='placing') {
+        const ball = balls.find(b=>!b.isPotted && Math.hypot(b.x-x,b.y-y)<BALL_RADIUS*2.5);
+        if (ball) { eng.draggedBall=ball; eng.dragCurrent={x,y}; canvas.setPointerCapture(e.pointerId); }
+    } else if (gameState==='playing' && eng.allStopped && !eng.isAnimatingShot) {
+        const cue=balls.find(b=>b.id===0);
+        if (cue && !cue.isPotted) { eng.isDragging=true; eng.dragStart={x,y}; eng.dragCurrent={x,y}; canvas.setPointerCapture(e.pointerId); }
+    }
+});
+
+canvas.addEventListener('pointermove', (e) => {
+    const {x,y} = getPos(e);
+    eng.dragCurrent = {x,y};
+    const cue = balls.find(b=>b.id===0);
+    if (!cue) return;
+    if (gameState==='placing') {
+        if (!eng.draggedBall) eng.lastAimAngle = Math.atan2(y-cue.y, x-cue.x);
+    } else if (gameState==='playing' && !eng.isAnimatingShot) {
+        if (!eng.isDragging) eng.lastAimAngle = Math.atan2(y-cue.y, x-cue.x);
+        else { const dx=x-eng.dragStart.x, dy=y-eng.dragStart.y; if(Math.hypot(dx,dy)>5) eng.lastAimAngle=Math.atan2(-dy,-dx); }
+    }
+});
+
+canvas.addEventListener('pointerup', () => {
+    if (gameState==='placing' && eng.draggedBall) {
+        const ball=eng.draggedBall; const {x,y}=eng.dragCurrent;
+        ball.x=x; ball.y=y;
+        ball.inTable = x>BOUND_LEFT+BALL_RADIUS && x<BOUND_RIGHT-BALL_RADIUS && y>BOUND_TOP+BALL_RADIUS && y<BOUND_BOTTOM-BALL_RADIUS;
+        eng.draggedBall=null;
+        updateUI();
+    } else if (gameState==='playing' && eng.isDragging) {
+        eng.isDragging=false;
+        const dist=Math.hypot(eng.dragCurrent.x-eng.dragStart.x, eng.dragCurrent.y-eng.dragStart.y);
+        if (dist>10) triggerShotWithAnimation(eng.lastAimAngle, Math.min(dist*0.12,22));
+    }
+});
+
+function gameLoop() {
+    updatePhysics();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+initBalls();
+gameLoop();
+</script>
 </body>
 </html>
